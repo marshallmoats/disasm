@@ -1,0 +1,216 @@
+main:
+ADD X0, XZR, XZR
+ADDI X1, XZR, #256
+BL fill
+
+ADD X0, XZR, XZR
+ADDI X1, XZR, #256
+BL selection_sort
+
+// smallest element
+ADD X0, XZR, XZR
+ADD X1, XZR, XZR
+ADDI X2, XZR, #256
+ADDI X3, XZR, #0
+BL binary_search
+PRNT X0
+
+// largest element
+ADD X0, XZR, XZR
+ADD X1, XZR, XZR
+ADDI X2, XZR, #256
+ADDI X3, XZR, #255
+BL binary_search
+PRNT X0
+
+// middle element
+ADD X0, XZR, XZR
+ADD X1, XZR, XZR
+ADDI X2, XZR, #256
+ADDI X3, XZR, #128
+BL binary_search
+PRNT X0
+
+ADD X0, XZR, XZR
+ADD X1, XZR, XZR
+ADDI X2, XZR, #256
+ADDI X3, XZR, #512
+BL binary_search
+PRNT X0
+
+HALT
+
+swap:
+LDUR X9 , [X0, #0]
+LDUR X10, [X1, #0]
+STUR X10, [X0, #0]
+STUR X9 , [x1, #0]
+BR LR
+
+
+fill:
+ADD X9, XZR, XZR // i = 0;
+
+fill_loop:
+SUBS XZR, X9, X1
+B.GE fill_done
+
+SUB X10, X1, X9
+SUBI X10, X10, #1
+STUR X10, [X0, #0]
+
+ADDI X0, X0, #8
+ADDI X9, X9, #1
+B fill_loop
+
+fill_done:
+BR LR
+
+
+find_min_idx:
+ADD X9, X0, XZR // put a in X9
+ADD X0, XZR, XZR // min_idx = 0;
+ADDI X10, XZR, #1 // i = 1;
+
+find_min_idx_loop:
+SUBS XZR, X10, X1
+B.GE find_min_idx_done
+
+ADD X11, X10, XZR
+LSL X11, X11, #3 // X11 = 8 * i;
+ADD X11, X11, X9
+LDUR X12, [X11, #0] // X12 = a[i];
+ADD X11, X0, XZR
+LSL X11, X11, #3
+ADD X11, X11, X9
+LDUR X13, [X11, #0] // X13 = a[min_idx];
+SUBS XZR, X12, X13
+B.GE find_min_idx_no_update
+ADD X0, X10, XZR
+find_min_idx_no_update:
+ADDI X10, X10, #1
+
+B find_min_idx_loop
+
+find_min_idx_done:
+BR LR
+
+
+selection_sort:
+
+// store saved registers
+SUBI SP, SP, #32
+STUR LR, [SP, #0]
+STUR X19, [SP, #8]
+STUR X20, [SP, #16]
+STUR X21, [SP, #24]
+
+
+ADD X19, X0, XZR  // X19 = a;
+ADD X20, X1, XZR  // X20 = n;
+ADD X21, XZR, XZR // i = 0;
+
+selection_sort_loop:
+
+SUBS XZR, X21, X20
+B.GE selection_sort_done
+
+LSL X9, X21, #3
+ADD X0, X19, X9
+SUB X1, X20, X21
+
+BL find_min_idx
+
+ADD X1, X0, XZR
+ADD X1, X1, X19
+ADD X1, X1, X21
+ADD X0, X19, X21
+LSL X0, X0, #3
+LSL X1, X1, #3
+
+BL swap
+
+// DUMP
+
+ADDI X21, X21, #1
+
+B selection_sort_loop
+
+selection_sort_done:
+
+// restore saved registers
+LDUR X21, [SP, #24]
+LDUR X20, [SP, #16]
+LDUR X19, [SP, #8]
+LDUR LR, [SP, #0]
+ADDI SP, SP, #32
+
+BR LR
+
+binary_search:
+
+SUBI SP, SP, #48
+STUR LR, [SP, #0]
+STUR X19, [SP, #8]
+STUR X20, [SP, #16]
+STUR X21, [SP, #24]
+STUR X22, [SP, #32]
+STUR X23, [SP, #40]
+
+ADD X19, X0, XZR  // a
+ADD X20, X1, XZR  // start
+ADD X21, X2, XZR  // end
+ADD X22, X3, XZR  // value
+ADD X23, XZR, XZR // index
+
+SUBS XZR, X21, X20
+
+B.GE bs_valid
+
+SUBI X0, XZR, #1
+B binary_search_done
+
+bs_valid:
+ADD X23, X20, X21
+LSR X23, X23, #1
+
+LSL X9, X23, #3
+ADD X9, X9, X19
+LDUR X9, [X9, #0]
+SUBS XZR, X9, X22
+B.NE bs_neq
+
+ADD X0, X23, XZR
+B binary_search_done
+
+bs_neq:
+
+B.LT bs_lt
+
+ADD X0, X19, XZR
+ADD X1, X20, XZR
+SUBI X2, X23, #1
+ADD X3, X22, XZR
+BL binary_search
+B binary_search_done
+
+bs_lt:
+
+ADD X0, X19, XZR
+ADDI X1, X23, #1
+ADD X2, X21, XZR
+ADD X3, X22, XZR
+BL binary_search
+
+
+binary_search_done:
+
+LDUR X23, [SP, #40]
+LDUR X22, [SP, #32]
+LDUR X21, [SP, #24]
+LDUR X20, [SP, #16]
+LDUR X19, [SP, #8]
+LDUR LR,  [SP, #0]
+ADDI SP, SP, #48
+
+BR LR
